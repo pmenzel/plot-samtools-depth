@@ -8,6 +8,8 @@ The output is a postscript file.
 ## Usage
 Download:
 ```
+sudo apt install libplot-dev
+
 git clone https://github.com/pmenzel/plot-samtools-depth.git
 
 make
