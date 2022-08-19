@@ -31,6 +31,7 @@ void usage(char *progname) {
 	fprintf(stderr, "Mandatory arguments:\n");
 	fprintf(stderr, "   -i FILENAME   Name of input file\n");
 	fprintf(stderr, "   -t STRING     plotlib display type (ps)\n");
+	fprintf(stderr, "   -n STRING     only use this sequence name\n");
 	fprintf(stderr, "   -w INT        window size (10000)\n");
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Optional arguments:\n");
@@ -40,21 +41,26 @@ void usage(char *progname) {
 
 
 int main(int argc, char **argv) {
+	char *seq_name = NULL;
 	char *display_type = "ps";	/* default libplot output format 	*/
 	char *inputfilename = NULL;
 	unsigned long window_size = 10000;
 	double tick_frac_x = 0.1; // fraction of number of windows for which to plot x-axis ticks and labels
 	int debug = 0;
 	char buffer [55]; /* text buffer for printing text */
+	int exit_code = 0;
 
 	/* parse command line */
 	unsigned long input_number_w = ULONG_MAX;
 	opterr = 0;
 	int optc;
-	while((optc = getopt (argc, argv, "di:t:w:")) != -1) {
+	while((optc = getopt (argc, argv, "dn:i:t:w:")) != -1) {
 		switch(optc) {
 			case 'i':
 				inputfilename = optarg;
+				break;
+			case 'n':
+				seq_name = optarg;
 				break;
 			case 't':
 				display_type = optarg;
@@ -75,6 +81,8 @@ int main(int argc, char **argv) {
 		}
 	}
 
+	if(seq_name != NULL) fprintf(stderr, "Only including sequence %s\n", seq_name);
+
 	if(!inputfilename) {
 		printf("Missing input filename.\n");
 		usage(argv[0]);
@@ -86,11 +94,8 @@ int main(int argc, char **argv) {
 		usage(argv[0]);
 	}
 
-
-
 	int handle;			/* handle for open plotter		*/
 	int return_value;			/* handle for open plotter		*/
-
 
 	/* initialising one plot session	*/
 	/* specify type of plotter		*/
@@ -114,7 +119,6 @@ int main(int argc, char **argv) {
 
 	//	return_value = pl_fspace(-1.4,-1.4,1.4,1.4);
 	//	if(return_value) {	fprintf(stderr,"fspace returned %d!\n",return_value);	}
-
 
 	pl_joinmod("round");
 	pl_filltype(1);
@@ -144,9 +148,17 @@ int main(int argc, char **argv) {
 		if(firsttab)  {
 			char * secondtab = strchr(firsttab+1,'\t');
 			if(secondtab)  {
+
+				// test if this sequence name should be included
+				if(seq_name != NULL && strncmp(seq_name, line, strlen(seq_name)) != 0) { continue; }
+
 				u_int64_t input_number = ULONG_MAX;
 				input_number = strtoul(secondtab, NULL, 10);
-				if(input_number < 0 || input_number == ULONG_MAX) { fprintf(stderr, "Bad number (out of range error) in input line: %s",line); exit(EXIT_FAILURE); }
+				if(input_number < 0 || input_number == ULONG_MAX) {
+					fprintf(stderr, "Bad number (out of range error) in input line: %s",line);
+					exit_code = 1;
+					goto theend;
+				}
 				//fprintf(stderr, "Num = %li\n", input_number);
 				total_pos++;
 				curr_pos++;
@@ -182,7 +194,11 @@ int main(int argc, char **argv) {
 
 	//TODO what about the last positions that didn't fill up a window
 
-	free(arr);
+	if(window_count <= 1) {
+		fprintf(stderr, "Choose a smaller window size");
+		exit_code = 1;
+		goto theend;
+	}
 
 	pl_filltype(0);
 	pl_fbox(-0.01, 0.01 * (avg_depth_min - 1), 0.01 * (double)(window_count + 1), 0.01 * (avg_depth_max + 1));
@@ -203,11 +219,16 @@ int main(int argc, char **argv) {
 		sprintf(buffer, "%li", i * window_size / 1000);
 		pl_alabel('c', 't', buffer);
 	}
+
 	// draw x-axis title
 	pl_fmove(0.01 * (double)window_count / 2.0, 0.01 * (avg_depth_min - 5));
 	pl_alabel('c', 't', "Genome location (Kbp)");
 
-	/* end a plot sesssion			*/
+theend:
+
+	free(arr);
+
+	/* end a plot sesssion */
 	return_value = pl_closepl();
 	if(return_value < 0) {
 		fprintf(stderr,"The plotter could not be closed.\n");
@@ -225,7 +246,7 @@ int main(int argc, char **argv) {
 		fprintf(stderr,"Selected Plotter could not be deleted!\n");
 	}
 
-	return 0;
+	return exit_code;
 }
 
 
