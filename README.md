@@ -19,3 +19,6 @@ samtools depth -s -aa /path/to/mapping.bam > mapping.depth
 evince depth-plot.ps
 ```
 
+## Example
+
+![Example](/example.png?raw=true)
