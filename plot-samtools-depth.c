@@ -146,7 +146,7 @@ int main(int argc, char **argv) {
 			if(secondtab)  {
 				u_int64_t input_number = ULONG_MAX;
 				input_number = strtoul(secondtab, NULL, 10);
-				if(input_number == 0 || input_number == ULONG_MAX) { fprintf(stderr, "Bad number (out of range error) in input line: %s",line); exit(EXIT_FAILURE); }
+				if(input_number < 0 || input_number == ULONG_MAX) { fprintf(stderr, "Bad number (out of range error) in input line: %s",line); exit(EXIT_FAILURE); }
 				//fprintf(stderr, "Num = %li\n", input_number);
 				total_pos++;
 				curr_pos++;
