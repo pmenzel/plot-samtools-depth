@@ -12,7 +12,7 @@ sudo apt install libplot-dev
 
 git clone https://github.com/pmenzel/plot-samtools-depth.git
 
-make
+cd plot-samtools-depth && make
 
 samtools depth -s -aa /path/to/mapping.bam > mapping.depth
 
