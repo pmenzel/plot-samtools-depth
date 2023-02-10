@@ -24,3 +24,18 @@ evince depth-plot.ps
 ## Example
 
 ![Example](/example.png?raw=true)
+
+# bin-samtools-depth
+
+## About
+
+This calculates the average depth in bins along a chromosome using the output of [samtools depth](http://www.htslib.org/doc/samtools-depth.html).
+
+## Usage
+Download:
+```
+samtools depth -s -aa /path/to/mapping.bam > mapping.depth
+
+./bin-samtools-depth -i mapping.depth > binned_depths.tsv
+```
+
