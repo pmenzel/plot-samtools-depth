@@ -99,6 +99,7 @@ int main(int argc, char **argv) {
 	char *line = NULL;
 	size_t size = 0;;
 	ssize_t length_line;
+	char * curr_seq_name = NULL;
 	while((length_line = getline(&line, &size, fp)) != -1) {
 		if(length_line == 1) { continue; } /* only newline char */
 
@@ -109,6 +110,18 @@ int main(int argc, char **argv) {
 
 				// test if this sequence name should be included
 				if(seq_name != NULL && strncmp(seq_name, line, strlen(seq_name)) != 0) { continue; }
+
+				if(curr_seq_name == NULL || strncmp(curr_seq_name, line, strlen(curr_seq_name)) != 0) {
+					if(curr_seq_name != NULL)
+						free(curr_seq_name);
+					int size =  firsttab - line + 1;
+					curr_seq_name = malloc(size * sizeof(char));
+					strncpy(curr_seq_name, line, size -1);
+					fprintf(stderr, "Length = %s\n", curr_seq_name);
+					total_pos = 0;
+					curr_pos = 0;
+					window_count = 0;
+				}
 
 				u_int64_t input_number = ULONG_MAX;
 				input_number = strtoul(secondtab, NULL, 10);
@@ -131,9 +144,6 @@ int main(int argc, char **argv) {
 
 					double avg = (double)sum / (double)window_size;
 					printf("%.*s\t%li\t%f\n", firsttab-line, line, total_pos, avg);
-
-					// actually not needed:
-					memset(arr, 0, window_size * sizeof(u_int64_t));
 
 					curr_pos = 0;
 					window_count++;

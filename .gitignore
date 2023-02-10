@@ -1,2 +1,3 @@
 *.o
 plot-samtools-depth
+bin-samtools-depth
