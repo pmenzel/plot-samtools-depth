@@ -1,6 +1,6 @@
 /*
 
-	 Copyright (C) 2022-203 Peter Menzel
+	 Copyright (C) 2022-2023 Peter Menzel
 
 */
 
@@ -30,10 +30,10 @@ void usage(char *progname) {
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Mandatory arguments:\n");
 	fprintf(stderr, "   -i FILENAME   Name of input file\n");
-	fprintf(stderr, "   -n STRING     only use this sequence name\n");
-	fprintf(stderr, "   -w INT        window size (10000)\n");
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Optional arguments:\n");
+	fprintf(stderr, "   -n STRING     only use this sequence name\n");
+	fprintf(stderr, "   -w INT        window size (10000)\n");
 	fprintf(stderr, "   -d            Enable debug output.\n");
 	exit(EXIT_FAILURE);
 }
@@ -117,7 +117,6 @@ int main(int argc, char **argv) {
 					int size =  firsttab - line + 1;
 					curr_seq_name = malloc(size * sizeof(char));
 					strncpy(curr_seq_name, line, size -1);
-					fprintf(stderr, "Length = %s\n", curr_seq_name);
 					total_pos = 0;
 					curr_pos = 0;
 					window_count = 0;

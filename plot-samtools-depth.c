@@ -1,6 +1,6 @@
 /*
 
-	 Copyright (C) 2022 Peter Menzel
+	 Copyright (C) 2022-2023 Peter Menzel
 
 */
 
@@ -15,14 +15,19 @@
 #define min(X, Y)  ((X) < (Y) ? (X) : (Y))
 #define max(X, Y)  ((X) > (Y) ? (X) : (Y))
 
-
 #define VERSION "0.1 "
 #define PROGRAMNAME "plot-samtools-depth"
+
+struct SeqEnd
+{
+	u_int64_t  x;
+	struct SeqEnd *next;
+};
 
 void print_version(FILE *file)
 {
 	fprintf(file, PROGRAMNAME " " VERSION "\n");
-	fprintf(file,"Copyright (C) 2022 by Peter Menzel\n");
+	fprintf(file,"Copyright (C) 2022-2023 by Peter Menzel\n");
 }
 
 void usage(char *progname) {
@@ -31,10 +36,10 @@ void usage(char *progname) {
 	fprintf(stderr, "Mandatory arguments:\n");
 	fprintf(stderr, "   -i FILENAME   Name of input file\n");
 	fprintf(stderr, "   -t STRING     plotlib display type (ps)\n");
-	fprintf(stderr, "   -n STRING     only use this sequence name\n");
-	fprintf(stderr, "   -w INT        window size (10000)\n");
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Optional arguments:\n");
+	fprintf(stderr, "   -n STRING     only use this sequence name\n");
+	fprintf(stderr, "   -w INT        window size (10000)\n");
 	fprintf(stderr, "   -d            Enable debug output.\n");
 	exit(EXIT_FAILURE);
 }
@@ -49,6 +54,8 @@ int main(int argc, char **argv) {
 	int debug = 0;
 	char buffer [55]; /* text buffer for printing text */
 	int exit_code = 0;
+	struct SeqEnd *first_SeqEnd = malloc(sizeof(struct SeqEnd));
+	struct SeqEnd *curr_SeqEnd = first_SeqEnd;
 
 	/* parse command line */
 	unsigned long input_number_w = ULONG_MAX;
@@ -102,13 +109,13 @@ int main(int argc, char **argv) {
 	handle = pl_newpl(display_type, NULL, stdout, stderr);
 	if(handle < 0) {
 		fprintf(stderr,"The plotter could not be created.\n");
- 		exit(1);
+		exit(1);
 	}
 
 	return_value = pl_selectpl(handle);
 	if(return_value < 0) {
 		fprintf(stderr, "The plotter does not exist or could not be selected.\n");
- 		exit(1);
+		exit(1);
 	}
 
 	return_value = pl_openpl();
@@ -141,6 +148,7 @@ int main(int argc, char **argv) {
 	char *line = NULL;
 	size_t size = 0;;
 	ssize_t length_line;
+	char * curr_seq_name = NULL;
 	while((length_line = getline(&line, &size, fp)) != -1) {
 		if(length_line == 1) { continue; } /* only newline char */
 
@@ -151,6 +159,22 @@ int main(int argc, char **argv) {
 
 				// test if this sequence name should be included
 				if(seq_name != NULL && strncmp(seq_name, line, strlen(seq_name)) != 0) { continue; }
+
+				if(curr_seq_name == NULL || strncmp(curr_seq_name, line, strlen(curr_seq_name)) != 0) {
+					if(curr_seq_name != NULL) {
+						free(curr_seq_name);
+						// store x position in list
+						curr_SeqEnd->x = total_pos;
+						struct SeqEnd *n = malloc(sizeof(struct SeqEnd));
+						n->x = 0;
+						n->next = NULL;
+						curr_SeqEnd->next = n;
+						curr_SeqEnd = n;
+					}
+					int size =  firsttab - line + 1;
+					curr_seq_name = malloc(size * sizeof(char));
+					strncpy(curr_seq_name, line, size -1);
+				}
 
 				u_int64_t input_number = ULONG_MAX;
 				input_number = strtoul(secondtab, NULL, 10);
@@ -203,6 +227,21 @@ int main(int argc, char **argv) {
 	pl_filltype(0);
 	pl_fbox(-0.01, 0.01 * (avg_depth_min - 1), 0.01 * (double)(window_count + 1), 0.01 * (avg_depth_max + 1));
 
+	// draw vertical dotted lines between chromosomes
+	pl_linemod("dotted");
+	curr_SeqEnd = first_SeqEnd;
+	while(curr_SeqEnd != NULL) {
+		if(curr_SeqEnd->x > 0) {
+			pl_fline(
+					0.01 * curr_SeqEnd->x / window_size,
+					0.01 * (avg_depth_min - 1),
+					0.01 * curr_SeqEnd->x / window_size,
+					0.01 * (avg_depth_max + 1)
+					);
+		}
+		curr_SeqEnd = curr_SeqEnd->next;
+	}
+
 	// label for min depth on y-axis
 	pl_fmove(-0.02, 0.01 * avg_depth_min);
 	sprintf(buffer, "%.0lf", avg_depth_min);
@@ -227,6 +266,13 @@ int main(int argc, char **argv) {
 theend:
 
 	free(arr);
+
+	struct SeqEnd *tmp;
+	while(first_SeqEnd != NULL) {
+		tmp = first_SeqEnd;
+		first_SeqEnd = first_SeqEnd->next;
+		free(tmp);
+	}
 
 	/* end a plot sesssion */
 	return_value = pl_closepl();
