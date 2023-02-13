@@ -39,3 +39,13 @@ samtools depth -s -aa /path/to/mapping.bam > mapping.depth
 ./bin-samtools-depth -i mapping.depth > binned_depths.tsv
 ```
 
+The output has 3 columns in TSV format, for example:
+
+```
+contig_1  50000   93.145200
+contig_2  50000   72.055800
+contig_2  100000  68.510700
+contig_2  150000  67.599680
+contig_2  200000  68.697940
+```
+
